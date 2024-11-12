@@ -35,7 +35,7 @@ CREATE TABLE "User" (
     "lastName" TEXT NOT NULL,
     "username" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "phone" BIGINT NOT NULL,
+    "phone" TEXT NOT NULL,
     "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("userId")
@@ -144,6 +144,15 @@ CREATE TABLE "Verification" (
 
     CONSTRAINT "Verification_pkey" PRIMARY KEY ("verificationId")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 
 -- AddForeignKey
 ALTER TABLE "Favorite" ADD CONSTRAINT "Favorite_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;

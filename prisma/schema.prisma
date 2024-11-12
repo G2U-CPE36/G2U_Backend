@@ -1,4 +1,3 @@
-
 datasource db {
   provider = "postgresql"  // Specify the database provider
   url      = env("DATABASE_URL") // Use an environment variable for the database connection URL
