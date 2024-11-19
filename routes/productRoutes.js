@@ -1,28 +1,21 @@
+// routes/productRoute.js
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-const upload = multer({ dest: "uploads/" }); // Set the destination folder for uploaded files
-
 const productController = require("../controllers/productController");
 
-// Create a product (with image upload)
-router.post(
-  "/",
-  upload.single("productImage"),
-  productController.createProduct
-);
+// POST: Create a product
+router.post("/create", productController.createProduct);
 
-// Get all products or a single product by ID
-router.get("/:id?", productController.getProducts);
+// GET: Get all products
+router.get("/getproducts", productController.getAllProducts);
 
-// Update a product by ID
-router.put(
-  "/:id",
-  upload.single("productImage"),
-  productController.updateProduct
-);
+// GET: Get a product by ID
+router.get("/products/:productId", productController.getProductById);
 
-// Delete a product by ID
-router.delete("/:id", productController.deleteProduct);
+// PUT: Update a product by ID
+router.put("/products/:productId", productController.updateProduct);
+
+// DELETE: Delete a product by ID
+router.delete("/products/:productId", productController.deleteProduct);
 
 module.exports = router;

@@ -1,118 +1,117 @@
+// controllers/productController.js
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-// Create a new product with an image
+// Create a new product
 exports.createProduct = async (req, res) => {
-  const { productName, categoryId, productDescription, userId } = req.body;
-
-  // Get the image path if file is uploaded
-  const productImage = req.file ? req.file.path : null;
+  const { productName, categoryId, productDescription, productImage, userId } =
+    req.body;
 
   try {
-    // Create a new product entry in the database
-    const newProduct = await prisma.product.create({
+    // Check if the user exists
+    const user = await prisma.user.findUnique({
+      where: { userId },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "User does not exist" });
+    }
+
+    // Create the product
+    const product = await prisma.product.create({
       data: {
         productName,
         categoryId,
         productDescription,
-        productImage, // Save the image path in the database
+        productImage,
         userId,
       },
     });
-    res.status(201).json({
-      message: "Product created successfully",
-      product: newProduct,
-    });
+
+    return res.status(201).json(product);
   } catch (error) {
-    res.status(500).json({ message: "Error creating product", error });
+    console.error(error);
+    return res.status(500).json({ error: "Error creating product" });
   }
 };
 
-// Get all products or a single product by ID
-exports.getProducts = async (req, res) => {
-  const { id } = req.params;
-
+// Get all products
+exports.getAllProducts = async (req, res) => {
   try {
-    // If id is provided, fetch the single product by ID
-    if (id) {
-      const product = await prisma.product.findUnique({
-        where: { productId: parseInt(id) },
-      });
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      return res.status(200).json(product);
-    }
-
-    // If no id is provided, fetch all products
-    const products = await prisma.product.findMany();
-    res.status(200).json(products);
-  } catch (error) {
-    res.status(500).json({ message: "Error retrieving products", error });
-  }
-};
-
-// Update a product by ID
-exports.updateProduct = async (req, res) => {
-  const { id } = req.params;
-  const { productName, categoryId, productDescription, userId } = req.body;
-
-  // Get the image path if file is uploaded
-  const productImage = req.file ? req.file.path : null;
-
-  try {
-    // Check if the product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { productId: parseInt(id) },
-    });
-
-    if (!existingProduct) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    // Update the product entry
-    const updatedProduct = await prisma.product.update({
-      where: { productId: parseInt(id) },
-      data: {
-        productName: productName || existingProduct.productName, // If no new name, keep the old one
-        categoryId: categoryId || existingProduct.categoryId, // If no new category, keep the old one
-        productDescription:
-          productDescription || existingProduct.productDescription, // Keep old description if not provided
-        productImage: productImage || existingProduct.productImage, // Update image path if new image uploaded
-        userId: userId || existingProduct.userId, // Keep userId if not updated
+    const products = await prisma.product.findMany({
+      include: {
+        Category: true, // Include category data in response
+        User: true, // Include user data in response
       },
     });
-
-    res.status(200).json({
-      message: "Product updated successfully",
-      product: updatedProduct,
-    });
+    return res.status(200).json(products);
   } catch (error) {
-    res.status(500).json({ message: "Error updating product", error });
+    console.error(error);
+    return res.status(500).json({ error: "Error fetching products" });
   }
 };
 
-// Delete a product by ID
-exports.deleteProduct = async (req, res) => {
-  const { id } = req.params;
+// Get a single product by ID
+exports.getProductById = async (req, res) => {
+  const { productId } = req.params;
 
   try {
     const product = await prisma.product.findUnique({
-      where: { productId: parseInt(id) },
+      where: { productId: parseInt(productId) },
+      include: {
+        Category: true,
+        User: true,
+      },
     });
 
-    // Check if product exists before deleting
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ error: "Product not found" });
     }
 
-    // Delete the product
-    await prisma.product.delete({
-      where: { productId: parseInt(id) },
+    return res.status(200).json(product);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error fetching product" });
+  }
+};
+
+// Update product details
+exports.updateProduct = async (req, res) => {
+  const { productId } = req.params;
+  const { productName, categoryId, productDescription, productImage, userId } =
+    req.body;
+
+  try {
+    const product = await prisma.product.update({
+      where: { productId: parseInt(productId) },
+      data: {
+        productName,
+        categoryId,
+        productDescription,
+        productImage,
+        userId,
+      },
     });
 
-    res.status(200).json({ message: "Product deleted successfully" });
+    return res.status(200).json(product);
   } catch (error) {
-    res.status(500).json({ message: "Error deleting product", error });
+    console.error(error);
+    return res.status(500).json({ error: "Error updating product" });
+  }
+};
+
+// Delete a product
+exports.deleteProduct = async (req, res) => {
+  const { productId } = req.params;
+
+  try {
+    const product = await prisma.product.delete({
+      where: { productId: parseInt(productId) },
+    });
+
+    return res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error deleting product" });
   }
 };

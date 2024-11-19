@@ -1,16 +1,45 @@
 datasource db {
-  provider = "postgresql"  // Specify the database provider
-  url      = env("DATABASE_URL") // Use an environment variable for the database connection URL
+  provider = "postgresql" 
+  url      = env("DATABASE_URL") 
 }
 
-// Generate the Prisma client
 generator client {
   provider = "prisma-client-js"
 }
+// Define the UserLog model for logging user actions
+model UserLog {
+  logId     Int      @id @default(autoincrement()) // Primary key
+  userId    Int
+  action    String   // Action performed by the user (e.g., login, update profile)
+  timestamp DateTime @default(now()) // Time of the log entry
+  User      User     @relation(fields: [userId], references: [userId]) // Relation to User model
+}
+
+// Define the User model
+model User {
+  userId      Int       @id @default(autoincrement()) // Primary key
+  username    String    @unique // Username must be unique
+  email       String    @unique // Email must be unique
+  password    String    // User's password
+  createdOn   DateTime  @default(now()) // Date and time when the user was created
+  firstName   String?   // Optional first name
+  lastName    String?   // Optional last name
+  phone       String?   // Optional phone number
+  Products    Product[] // Relation to products created by the user
+  Favorites   Favorite[] // Relation to user's favorite products
+  UserLogs    UserLog[]  // Relation to logs of the user actions
+  Auctions    Auction[] // Relation to auctions created by the user
+  OpenOrders  OpenOrder[] // Relation to user's open orders
+  UserAddresses UserAddress[] // Relation to user's addresses
+  UserPayments UserPayment[] // Relation to user's payment methods
+  UserWallets UserWallet[] // Relation to user's wallet
+  Verifications Verification[] // Relation to user's verification status
+  AuctionLogs AuctionLog[] // Relation to user's auction logs
+  status       String?        // Optional status field (e.g., "active", "inactive")
+ 
 
 
-
-
+}
 model Favorite {
   favoriteId  Int      @id @default(autoincrement())
   userId      Int
@@ -18,13 +47,7 @@ model Favorite {
   User        User     @relation(fields: [userId], references: [userId])
 }
 
-model UserLog {
-  userLogId   Int   @id @default(autoincrement())
-  userId      Int
-  editType    Int
-  editValue   Int
-  User        User  @relation(fields: [userId], references: [userId])
-}
+
 
 model AuctionLog {
   auctionLogId   Int      @id @default(autoincrement())
@@ -36,25 +59,6 @@ model AuctionLog {
   Auction        Auction  @relation(fields: [auctionId], references: [auctionId])
 }
 
-model User {
-  userId          Int        @id @default(autoincrement())
-  firstName       String
-  lastName        String
-  username        String @unique
-  email           String @unique
-  phone           String @unique
-  createdOn       DateTime   @default(now())
-  Products        Product[]
-  Favorites       Favorite[]
-  UserLogs        UserLog[]
-  Auctions        Auction[]
-  OpenOrders      OpenOrder[]
-  UserAddresses   UserAddress[]
-  UserPayments    UserPayment[]
-  UserWallets     UserWallet[]
-  Verifications    Verification[]
-  AuctionLogs     AuctionLog[] // Add this line for the relation
-}
 
 model Auction {
   auctionId   Int   @id @default(autoincrement())
