@@ -50,9 +50,12 @@ model UserAddress {
   note         String? // Optional note (TEXT)
   receiverName String // Receiver's name
   phone        BigInt // Phone number (BigInt for larger numbers)
+  isDefault    Boolean @default(false) // Default address flag
 
-  // Relation to User model, assuming there's a `User` model with `userId` as primary key
+  // Relation to User model
   User User @relation(fields: [userId], references: [userId])
+
+  @@unique([userId, isDefault]) // Enforces only one default address per user
 }
 
 model Favorite {

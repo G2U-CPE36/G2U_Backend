@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const userAddressRoutes = require("./routes/userAddressRoutes");
-
+const productMainRoutes = require("./routes/productMainRoutes");
 const cors = require("cors");
 const app = express();
 
@@ -23,6 +23,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/address", userAddressRoutes);
+app.use("/api/mainproduct", productMainRoutes);
 // Start server
 app.listen(3001, () => {
   console.log("Server is running on port 3001");

@@ -99,13 +99,14 @@ exports.getAllProducts = async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 };
-
 exports.getProductById = async (req, res) => {
   const { productId } = req.params;
 
   try {
     const product = await prisma.product.findUnique({
-      where: { productId: parseInt(productId) },
+      where: {
+        productId: parseInt(productId), // Ensure it's parsed as an integer
+      },
       include: {
         Category: true,
         User: {
@@ -130,15 +131,22 @@ exports.getProductById = async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    const productWithProvince = {
-      ...product,
+    // Format the product data
+    const formattedProduct = {
+      productName: product.productName,
+      categoryId: product.categoryId,
+      productDescription: product.productDescription,
+      productImage: product.productImage,
+      userId: product.userId,
+      price: product.price,
+      condition: product.condition,
       province:
         product.User.UserAddresses.length > 0
           ? product.User.UserAddresses[0].province
           : null,
     };
 
-    return res.status(200).json(productWithProvince);
+    return res.status(200).json(formattedProduct);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Error fetching product" });

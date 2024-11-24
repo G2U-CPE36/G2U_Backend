@@ -10,7 +10,7 @@ router.post("/create", productController.createProduct);
 router.get("/getproducts", productController.getAllProducts);
 
 // GET: Get a product by ID
-router.get("/products/:productId", productController.getProductById);
+router.get("/:productId", productController.getProductById);
 
 // PUT: Update a product by ID
 router.put("/products/:productId", productController.updateProduct);
