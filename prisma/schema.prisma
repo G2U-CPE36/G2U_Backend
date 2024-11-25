@@ -1,0 +1,189 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Define the UserLog model for logging user actions
+model UserLog {
+  logId     Int      @id @default(autoincrement()) // Primary key
+  userId    Int
+  action    String // Action performed by the user (e.g., login, update profile)
+  timestamp DateTime @default(now()) // Time of the log entry
+  User      User     @relation(fields: [userId], references: [userId]) // Relation to User model
+}
+
+// Define the User model
+model User {
+  userId        Int            @id @default(autoincrement()) // Primary key
+  username      String         @unique // Username must be unique
+  email         String         @unique // Email must be unique
+  password      String // User's password
+  createdOn     DateTime       @default(now()) // Date and time when the user was created
+  firstName     String? // Optional first name
+  lastName      String? // Optional last name
+  phone         String? // Optional phone number
+  Products      Product[] // Relation to products created by the user
+  Favorites     Favorite[] // Relation to user's favorite products
+  UserLogs      UserLog[] // Relation to logs of the user actions
+  Auctions      Auction[] // Relation to auctions created by the user
+  OpenOrders    OpenOrder[] // Relation to user's open orders
+  UserAddresses UserAddress[] // Relation to user's addresses
+  UserPayments  UserPayment[] // Relation to user's payment methods
+  UserWallets   UserWallet[] // Relation to user's wallet
+  Verifications Verification[] // Relation to user's verification status
+  AuctionLogs   AuctionLog[] // Relation to user's auction logs
+  status        String? // Optional status field (e.g., "active", "inactive")
+
+  // Reverse relations for orders
+  ProductOrders     ProductOrder[] @relation("Buyer") // Orders where the user is the buyer
+  ProductOrdersSold ProductOrder[] @relation("Seller") // Orders where the user is the seller
+}
+
+model UserAddress {
+  addressId    Int     @id @default(autoincrement()) // Primary key
+  userId       Int // Foreign key reference to User model
+  province     String // Province
+  district     String // District
+  subDistrict  String? // Optional field for subDistrict
+  postcode     Int // Postcode
+  address      String? // Optional address (TEXT)
+  note         String? // Optional note (TEXT)
+  receiverName String // Receiver's name
+  phone        BigInt // Phone number (BigInt for larger numbers)
+  isDefault    Boolean @default(false) // Default address flag
+
+  // Relation to User model
+  User          User           @relation(fields: [userId], references: [userId])
+  ProductOrders ProductOrder[] // Reverse relation to ProductOrder
+}
+
+model Favorite {
+  favoriteId Int     @id @default(autoincrement())
+  userId     Int
+  productId  Int
+  User       User    @relation(fields: [userId], references: [userId])
+  Product    Product @relation("ProductFavorites", fields: [productId], references: [productId]) // Define the reverse relation explicitly
+}
+
+model AuctionLog {
+  auctionLogId Int      @id @default(autoincrement())
+  userId       Int
+  auctionId    Int
+  bidPrice     Int
+  timestamp    DateTime // Use DateTime instead of TIMESTAMP
+  User         User     @relation(fields: [userId], references: [userId])
+  Auction      Auction  @relation(fields: [auctionId], references: [auctionId])
+}
+
+model Auction {
+  auctionId   Int          @id @default(autoincrement())
+  userId      Int
+  productId   Int
+  startPrice  Int
+  minimumBid  Int
+  start       DateTime // Use DateTime for start time
+  end         DateTime // Use DateTime for end time
+  User        User         @relation(fields: [userId], references: [userId])
+  AuctionLogs AuctionLog[] // Add this line for the relation
+}
+
+model OpenOrder {
+  openOrderId        Int    @id @default(autoincrement())
+  userId             Int
+  productName        String // TEXT type in SQL can be represented as String in Prisma
+  categoryId         Int
+  price              Int
+  productDescription String // TEXT type in SQL can be represented as String in Prisma
+  productImage       String // TEXT type in SQL can be represented as String in Prisma
+  User               User   @relation(fields: [userId], references: [userId])
+}
+
+model Product {
+  productId          Int     @id @default(autoincrement())
+  userId             Int
+  productName        String
+  categoryId         Int
+  productDescription String
+  productImage       String?
+  price              Float
+  condition          String
+
+  User              User           @relation(fields: [userId], references: [userId])
+  Category          Category       @relation(fields: [categoryId], references: [categoryId])
+  ProductOrders     ProductOrder[] // Add reverse relation to ProductOrder
+  ProductOrdersSold ProductOrder[] @relation("Seller") // Reverse relation for the seller in ProductOrder
+  Favorites         Favorite[]     @relation("ProductFavorites")
+}
+
+model Category {
+  categoryId   Int       @id @default(autoincrement())
+  categoryName String
+  detail       String? // Optional for TEXT
+  Products     Product[] // Relation to Product model
+}
+
+model WalletLog {
+  walletLogId     Int        @id @default(autoincrement())
+  walletId        Int
+  transactionType Int
+  value           Int
+  UserWallet      UserWallet @relation(fields: [walletId], references: [walletId])
+}
+
+model UserPayment {
+  paymentId   Int     @id @default(autoincrement())
+  userId      Int
+  paymentType Int
+  data1       String? // Optional for TEXT
+  data2       String? // Optional for TEXT
+  data3       String? // Optional for TEXT
+  User        User    @relation(fields: [userId], references: [userId])
+}
+
+model UserWallet {
+  walletId     Int         @id @default(autoincrement())
+  userId       Int
+  currentValue Int
+  User         User        @relation(fields: [userId], references: [userId])
+  WalletLogs   WalletLog[] // Relation to wallet logs
+}
+
+model Verification {
+  verificationId     Int    @id @default(autoincrement())
+  userId             Int
+  citizenId          BigInt
+  verificationStatus Int
+  picture            String // TEXT type in SQL can be represented as String in Prisma
+  User               User   @relation(fields: [userId], references: [userId])
+}
+
+enum OrderStatus {
+  PENDING
+  SHIPPED
+  DELIVERY
+  DELIVER
+  CANCELLED
+}
+
+model ProductOrder {
+  orderId       Int         @id @default(autoincrement())
+  userId        Int // Buyer ID (user who places the order)
+  sellerId      Int // Seller ID (user who sells the product)
+  productId     Int // Product being ordered
+  addressId     Int // Reference to the shipping address
+  orderStatus   OrderStatus // Status of the order (now Enum type)
+  orderDate     DateTime    @default(now()) // Order placement date
+  deliveryDate  DateTime? // Delivery date (optional)
+  paymentStatus String? // Payment status (optional)
+
+  // Relations
+  User              User        @relation("Buyer", fields: [userId], references: [userId]) // Buyer relationship
+  Seller            User        @relation("Seller", fields: [sellerId], references: [userId]) // Seller relationship
+  Product           Product     @relation(fields: [productId], references: [productId]) // Product relationship
+  UserAddress       UserAddress @relation(fields: [addressId], references: [addressId]) // Address relationship
+  ProductOrdersSold Product[]   @relation("Seller")
+}
