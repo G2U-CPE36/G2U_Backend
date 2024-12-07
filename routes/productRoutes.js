@@ -1,4 +1,4 @@
-// routes/productRoute.js
+//routes/productRoute.js
 const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/productController");
@@ -17,5 +17,8 @@ router.put("/products/:productId", productController.updateProduct);
 
 // DELETE: Delete a product by ID
 router.delete("/products/:productId", productController.deleteProduct);
+
+// Toggle
+router.put("/:productId/toggle", productController.toggleProduct);
 
 module.exports = router;

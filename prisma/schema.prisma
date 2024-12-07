@@ -37,7 +37,8 @@ model User {
   Verifications Verification[] // Relation to user's verification status
   AuctionLogs   AuctionLog[] // Relation to user's auction logs
   status        String? // Optional status field (e.g., "active", "inactive")
-
+  BankAccounts     BankAccount[]
+  Cards            Card[]
   // Reverse relations for orders
   ProductOrders     ProductOrder[] @relation("Buyer") // Orders where the user is the buyer
   ProductOrdersSold ProductOrder[] @relation("Seller") // Orders where the user is the seller
@@ -49,11 +50,11 @@ model UserAddress {
   province     String // Province
   district     String // District
   subDistrict  String? // Optional field for subDistrict
-  postcode     Int // Postcode
+  postcode     String // Postcode
   address      String? // Optional address (TEXT)
   note         String? // Optional note (TEXT)
-  receiverName String // Receiver's name
-  phone        BigInt // Phone number (BigInt for larger numbers)
+  receiverName String? // Receiver's name
+  phone        String // Phone number (BigInt for larger numbers)
   isDefault    Boolean @default(false) // Default address flag
 
   // Relation to User model
@@ -66,8 +67,12 @@ model Favorite {
   userId     Int
   productId  Int
   User       User    @relation(fields: [userId], references: [userId])
-  Product    Product @relation("ProductFavorites", fields: [productId], references: [productId]) // Define the reverse relation explicitly
+  Product    Product @relation("ProductFavorites", fields: [productId], references: [productId])
+
+  // Ensure userId and productId combination is unique
+  @@unique([userId, productId])
 }
+
 
 model AuctionLog {
   auctionLogId Int      @id @default(autoincrement())
@@ -94,11 +99,13 @@ model Auction {
 model OpenOrder {
   openOrderId        Int    @id @default(autoincrement())
   userId             Int
-  productName        String // TEXT type in SQL can be represented as String in Prisma
+  productName        String 
   categoryId         Int
   price              Int
-  productDescription String // TEXT type in SQL can be represented as String in Prisma
-  productImage       String // TEXT type in SQL can be represented as String in Prisma
+  productDescription String 
+  productImage       Bytes? 
+  createdAt          DateTime @default(now()) 
+  updatedAt          DateTime? @updatedAt     
   User               User   @relation(fields: [userId], references: [userId])
 }
 
@@ -108,9 +115,12 @@ model Product {
   productName        String
   categoryId         Int
   productDescription String
-  productImage       String?
+  productImage       Bytes[]
   price              Float
   condition          String
+  createdAt          DateTime @default(now()) 
+  updatedAt          DateTime? @updatedAt
+  status             Boolean @default(true)     
 
   User              User           @relation(fields: [userId], references: [userId])
   Category          Category       @relation(fields: [categoryId], references: [categoryId])
@@ -122,8 +132,8 @@ model Product {
 model Category {
   categoryId   Int       @id @default(autoincrement())
   categoryName String
-  detail       String? // Optional for TEXT
-  Products     Product[] // Relation to Product model
+  detail       String? 
+  Products     Product[] 
 }
 
 model WalletLog {
@@ -166,6 +176,7 @@ enum OrderStatus {
   SHIPPED
   DELIVERY
   DELIVER
+  COMPLETE
   CANCELLED
 }
 
@@ -186,4 +197,27 @@ model ProductOrder {
   Product           Product     @relation(fields: [productId], references: [productId]) // Product relationship
   UserAddress       UserAddress @relation(fields: [addressId], references: [addressId]) // Address relationship
   ProductOrdersSold Product[]   @relation("Seller")
+}
+model BankAccount {
+  BankAccountId            Int     @id @default(autoincrement())
+  userId        Int
+  accountNumber String
+  bankName      String
+  accountHolder String
+  isDefault     Boolean @default(false)
+  
+  user          User    @relation(fields: [userId], references: [userId])
+  @@unique([userId, isDefault])
+}
+
+model Card {
+  id         Int     @id @default(autoincrement())
+  userId     Int
+  cardNumber String
+  expiryDate String
+  cvv        String
+  isDefault  Boolean @default(false)
+  User       User    @relation(fields: [userId], references: [userId])
+
+  @@unique([userId, cardNumber])
 }

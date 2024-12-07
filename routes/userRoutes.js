@@ -9,7 +9,7 @@ router.post("/register", userController.register);
 router.post("/signin", userController.signin); // Add this route for signin
 
 // Get all users (for admin purposes or debugging, optional)
-router.get("/", userController.list);
+router.get("/list", userController.list);
 
 // Get a specific user by ID (for profile view)
 router.get("/:userId", userController.getUserById);

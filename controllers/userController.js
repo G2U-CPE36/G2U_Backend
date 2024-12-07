@@ -100,11 +100,11 @@ module.exports = {
   list: async (req, res) => {
     try {
       const users = await prisma.user.findMany({
-     //   where: {
-      //    status: "use", // Only active users
-      //  },
+       where: {
+         status: "use", // Only active users
+        },
         orderBy: {
-          userId: "desc", // Order by descending userId
+          userId: "asc", 
         },
         select: {
           userId: true,
@@ -122,17 +122,24 @@ module.exports = {
   updateProfile: async (req, res) => {
     try {
       const { userId, firstName, lastName, address, phone } = req.body;
-
+  
+      // Validate required fields
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+  
       await prisma.user.update({
-        where: { userId: parseInt(userId) }, // Parse userId as an integer
-        data: { firstName, lastName, address, phone },
+        where: { userId: parseInt(userId) }, // Ensure userId is an integer
+        data: { firstName, lastName, address, phone }, // Update fields
       });
-
+  
       return res.json({ message: "Profile updated successfully" });
     } catch (e) {
+      console.error("Error updating profile:", e.message);
       return res.status(500).json({ error: e.message });
     }
   },
+  
 
   getUserById: async (req, res) => {
     try {
@@ -205,42 +212,62 @@ module.exports = {
     }
   
     try {
-      // Check if the user exists before creating a favorite
+      // Check if the user exists
       const user = await prisma.user.findUnique({
-        where: { userId },
+        where: { userId }, // Adjust field name as per your schema
       });
   
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
   
-      // Check if the product exists (assuming you have a products table)
+      // Check if the product exists
       const product = await prisma.product.findUnique({
-        where: { productId },
+        where: { productId }, // Adjust field name as per your schema
       });
   
       if (!product) {
         return res.status(404).json({ error: 'Product not found' });
       }
   
-      // Create the favorite record in the database
-      const favorite = await prisma.favorite.create({
-        data: {
+      // Check if the user has already favorited this product
+      const existingFavorite = await prisma.favorite.findFirst({
+        where: {
           userId,
           productId,
-          
         },
       });
   
-      // Return the favoriteId, userId, and productId in the response
-      return res.status(201).json({
-        favoriteId: favorite.favoriteId,
-        userId: favorite.userId,
-        productId: favorite.productId,
-      });
+      if (existingFavorite) {
+        // If the favorite exists, delete it (unlike)
+        await prisma.favorite.delete({
+          where: { favoriteId: existingFavorite.favoriteId },
+        });
+  
+        return res.status(200).json({
+          message: 'Product unliked successfully',
+          userId,
+          productId,
+        });
+      } else {
+        // If the favorite does not exist, create it (like)
+        const favorite = await prisma.favorite.create({
+          data: {
+            userId,
+            productId,
+          },
+        });
+  
+        return res.status(201).json({
+          message: 'Product liked successfully',
+          favoriteId: favorite.favoriteId,
+          userId: favorite.userId,
+          productId: favorite.productId,
+        });
+      }
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Something went wrong' });
+      console.error('Error in like function:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
   },
 
@@ -289,6 +316,8 @@ module.exports = {
       return res.status(500).json({ error: "Internal server error" });
     }
   },
+  
+  
 
   myPost: async (req, res) => {
     const { userId } = req.params; // Retrieve userId from the URL parameters
@@ -304,6 +333,11 @@ module.exports = {
         where: { userId: parseInt(userId) }, // Query for products with the specific userId
         include: {
           Category: true, // Include related category information
+          ProductOrders: {
+            select: {
+              orderStatus: true, // Fetch the status from ProductOrder table
+            },
+          },
         },
       });
   
@@ -312,13 +346,29 @@ module.exports = {
         return res.status(404).json({ message: "No products found for this user" });
       }
   
-      // Return the products in the response
-      return res.status(200).json({ postedProducts: products });
+      // Format the products to include the status
+      const formattedProducts = products.map((product) => ({
+        productId: product.productId,
+        productName: product.productName,
+        categoryId: product.categoryId,
+        categoryName: product.Category?.categoryName || null, // Include category name if available
+        productDescription: product.productDescription,
+        productImage: product.productImage, // Assuming this is a filename or URL
+        userId: product.userId,
+        price: product.price,
+        condition: product.condition,
+        status: product.ProductOrders.length > 0 ? product.ProductOrders[0].orderStatus : "posted", // Default to "posted" if no status found
+      }));
+  
+      // Return the array of formatted products directly
+      return res.status(200).json(formattedProducts);
     } catch (error) {
       console.error("Error fetching posted products:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
+  
+   
 
 };
 
